@@ -1,18 +1,121 @@
-ORG 0H
-LJMP Main
-; F?program
-Main:
-MOV R7, #75H ;#0FEH
-MOV A, R7
-ANL A, #80H ; Megn閦z黭, hogy az MSB 1-e (negat韛-e)
-JNZ Negativ ; Ha negat韛, akkor 醫v醠t醩
-JMP Vege
-; Kettes komplemens 醫v醠t醩a
-; Ha negat韛, akkor minden bitet neg醠unk 閟 hozz醓dunk egyet az LSB-n
-Negativ:
-MOV A, R7
-CPL A
-INC A
+; R0: oszt贸
+; R2: osztand贸 high byte
+; R1: osztand贸 low byte
+; R7: 5. digit
+; R6: 4. digit
+; R5: 3. digit
+; R4: 2. digit
+; R3: 1. digit
+; B: marad茅k
+; ACC: h谩nyados als贸 byte
+; R3: h谩nyados fels? byte
+
+ORG 0
+CALL Reset ; regiszterek null谩z谩sa
+MOV R0, #0AH ; oszt贸: 10
+MOV R2, #0BAH ; high byte
+MOV A, #49H ; low byte
+CALL sixteenBitDivision ; oszt谩s
+MOV R7, B
+MOV 20H, R7
+; 1-es helyi茅rt茅k: R7
+
+MOV R0, #64H ; oszt贸: 100
+MOV R2, #0BAH ; high byte
+MOV A, #49H ; low byte
+CALL sixteenBitDivision ; oszt谩s
+
+; R3: fels?
+; A: als贸
+MOV R5, A
+MOV A, R0
+MOV R4, A
+
+MOV R0, #0AH ; oszt贸: 10
+MOV A, R3
+MOV R2, #0H ; high byte
+MOV A, B ; low byte
+CALL sixteenBitDivision ; oszt谩s
 MOV R6, A
+MOV 30H, R6
+
+MOV R0, #64H ; oszt贸: 100
+MOV A, R4
+MOV R2, A ; high byte
+MOV A, R5 ; low byte
+CALL sixteenBitDivision ; oszt谩s
+
+MOV R0, #0AH ; oszt贸: 10
+MOV A, R3
+MOV R2, #0H ; high byte
+MOV A, B ; low byte
+CALL sixteenBitDivision ; oszt谩s
+MOV 40H, B
+MOV 50H, A
+
+MOV R0, #64H ; oszt贸: 100
+MOV A, R4
+MOV R2, A ; high byte
+MOV A, R5 ; low byte
+CALL sixteenBitDivision ; oszt谩
+MOV 60H, A
+
+;MOV R0, #0AH ; oszt贸
+;MOV R2, #00H ; high byte
+;MOV A, b ; low byte
+;CALL sixteenBitDivision ; oszt谩s
+;MOV R6, A
+; 10-es helyi茅rt茅k: R6
+;MOV R0, #0AH ; oszt贸
+;MOV R2, #00H ; high byte
+;MOV A, r4 ; low byte
+;CALL sixteenBitDivision ; oszt谩s
+;MOV R5, B
+;MOV R4, A
+; =============================
+JMP Vege
+ 
+sixteenBitDivision:
+PUSH PSW
+MOV R1, #0H
+MOV R3, #0H
+clearC:
+CLR C
+subA:
+SUBB A, R0
+PUSH PSW
+CJNE R1, #0FFH, megnemcsordultul
+INC R3
+megnemcsordultul:
+POP PSW
+INC R1
+JNC subA
+DEC R2
+CJNE R2, #0FFH, clearC
+DEC R1
+ADD A, R0
+MOV B, A
+MOV A, R3
+MOV R0, A
+MOV A, R1
+POP PSW
+RET
+
+Reset:
+MOV B, #0H
+MOV A, #0H
+MOV R0, #0H
+MOV R1, #0H
+MOV R2, #0H
+MOV R3, #0H
+MOV R4, #0H
+MOV R5, #0H
+MOV R6, #0H
+MOV R7, #0H
+MOV 10H, #0H
+MOV 11H, #0H
+MOV 12H, #0H
+RET
+
 Vege:
 END
