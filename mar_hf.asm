@@ -5,62 +5,64 @@ DIGIT100 EQU 0x40 ; Százas helyiérték számjegye ezen a címen van a memóri�
 DIGIT10 EQU 0x30 ; Tízes helyiérték számjegye ezen a címen van a memóriában
 DIGIT1 EQU 0x20 ; Egyes helyiérték számjegye ezen a címen van a memóriában
 
-; Bemeneti paraméterek
-BEMENET_ALSO EQU 0x01
-BEMENET_FELSO EQU 0x11
+; Bemeneti paraméterek címe
+BEMENET_ALSO EQU 0x10 ; Osztás bemenetének alsó bájtja
+BEMENET_FELSO EQU 0x11 ; Osztás bemenetének felső bájtja
 
-; F?program
+; Bemeneti paraméterek tartalma
+ADAT_ALSO EQU 49H
+ADAT_FELSO EQU 0BAH
+
+; Főprogram
 ORG 0
 CALL Reset ; Regiszterek nullázása (szimulációhoz)
-MOV BEMENET_ALSO, #0x49
-MOV BEMENET_FELSO, #0xBA
-MOV R0, #0AH ; osztó: 10
-MOV R2, BEMENET_FELSO ; high byte
-MOV A, BEMENET_ALSO ; low byte
+MOV BEMENET_ALSO, #ADAT_ALSO ; Osztás bemenetének alsó bájtja
+MOV BEMENET_FELSO, #ADAT_FELSO ; Osztás bemenetének felső bájtja
+MOV R0, #0AH ; osztó: 10 (hexadecimálisan 0AH)
+MOV R2, BEMENET_FELSO ; Osztás bemenetének felső bájtja
+MOV A, BEMENET_ALSO ; Osztás bemenetének alsó bájtja
+; 16 bites osztás:
+; - osztandó: 0BA49H, osztó 0AH (decimális 10)
 CALL Division ; 16 bites osztás
-MOV R7, B ; R7-be teszem az egyes helyiérték számjegyét
-MOV 20H, R7 ; 20-as címre mentem az egyes helyiérték számjegyét
-; 1-es helyiérték: R7, 20-as cím
+MOV DIGIT1, B ; DIGIT1 címre mentem az egyes helyiérték számjegyét
 
-MOV R0, #64H ; osztó: 100
-MOV R2, #0BAH ; high byte
-MOV A, #49H ; low byte
+MOV R0, #64H ; osztó: 100 (hexadecimálisan 64H)
+MOV R2, #ADAT_FELSO ; Osztás bemenetének felső bájtja
+MOV A, #ADAT_ALSO ; Osztás bemenetének alsó bájtja
 CALL Division ; 16 bites osztás
-
-; R3: fels?
-; A: alsó
-MOV R5, A
+; Részeredmények tárolása a következő osztáshoz
+MOV R5, A ; Hányados alsó bájtja
 MOV A, R0
-MOV R4, A
+MOV R4, A ; Hányados fels? bájtja
 
 MOV R0, #0AH ; osztó: 10
-MOV A, R3
-MOV R2, #0H ; high byte
-MOV A, B ; low byte
+MOV A, R3 
+MOV R2, #0H ; Osztás bemenetének felső bájtja
+MOV A, B ; Osztás bemenetének alsó bájtja
 CALL Division ; 16 bites osztás
-MOV R6, A
-MOV 30H, R6
+MOV DIGIT10, A ; DIGIT10 címre mentem az egyes helyiérték számjegyét
 
-MOV R0, #64H ; osztó: 100
+MOV R0, #64H ; osztó: 100 (hexadecimálisan 64H)
+; Részeredmények betöltése az előző osztásból
 MOV A, R4
-MOV R2, A ; high byte
-MOV A, R5 ; low byte
+MOV R2, A ; Osztás bemenetének felső bájtja
+MOV A, R5 ; Osztás bemenetének alsó bájtja
 CALL Division ; 16 bites osztás
 
-MOV R0, #0AH ; osztó: 10
+MOV R0, #0AH ; osztó: 10 (hexadecimálisan 0AH)
 MOV A, R3
-MOV R2, #0H ; high byte
-MOV A, B ; low byte
+MOV R2, #0H ; Osztás bemenetének felső bájtja
+MOV A, B ; Osztás bemenetének alsó bájtja
 CALL Division ; 16 bites osztás
-MOV 40H, B
-MOV 50H, A
+MOV DIGIT100, B
+MOV DIGIT1000, A
 
-MOV R0, #64H ; osztó: 100
+MOV R0, #64H ; osztó: 100 (hexadecimálisan 64H)
 MOV A, R4
-MOV R2, A ; high byte
-MOV A, R5 ; low byte
+MOV R2, A ; Osztás bemenetének felső bájtja
+MOV A, R5 ; Osztás bemenetének alsó bájtja
 CALL Division ; 16 bites osztás
-MOV 60H, A
+MOV DIGIT10000, A
 
 JMP saveToRegisters ; Az egyes helyiértékek számjegyeit elmentem az R5, R6, R7 regiszterekbe
 JMP Vege ; Program vége
@@ -79,7 +81,7 @@ MOV R1, #0H
 MOV R3, #0H
 clearC:
 CLR C
-Substracion:
+Substraction:
 SUBB A, R0 ; Alsó bájtból kivonja az osztót
 ; Hányados átvitelének ellen?rzése:
 PUSH PSW ; Carry flag miatti mentés
@@ -88,7 +90,7 @@ INC R3 ; Ha az alsó bájton túlcsordulás van, akkor növeljük 1-gyel a fels?
 NoOverflow: ; Ha nincs az alsó bájton túlcsordulás, akkor:
 POP PSW ; Akksi (Carry miatt) visszatöltése
 INC R1 ; Hányados alsó bájtjának növelése
-JNC Substracion ; Ha még nem csordul túl az osztandó alsó bájtja, akkor vonjuk ki újra az osztót
+JNC Substraction ; Ha még nem csordul túl az osztandó alsó bájtja, akkor vonjuk ki újra az osztót
 DEC R2 ; Ha túlcsordul az osztandó alsó bájtja, akkor csökkentsük az osztandó fels? bájtját
 CJNE R2, #0FFH, clearC ; Ha az osztandó fels? bájtja még nem csordul túl, akkor folytassuk a kivonásokat
 ;  Az osztandó fels? bájtja akkor csordul túl, ha elérte a nullát és csökkentettük
